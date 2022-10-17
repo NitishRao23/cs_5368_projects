@@ -4,7 +4,7 @@
 # educational purposes provided that (1) you do not distribute or publish
 # solutions, (2) you retain this notice, and (3) you provide clear
 # attribution to UC Berkeley, including a link to http://ai.berkeley.edu.
-# 
+#
 # Attribution Information: The Pacman AI projects were developed at UC Berkeley.
 # The core projects and autograders were primarily created by John DeNero
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
@@ -12,11 +12,14 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
+from turtle import pen
 from util import manhattanDistance
 from game import Directions
 import random, util
+import math
 
 from game import Agent
+
 
 class ReflexAgent(Agent):
     """
@@ -27,7 +30,6 @@ class ReflexAgent(Agent):
     it in any way you see fit, so long as you don't touch our method
     headers.
     """
-
 
     def getAction(self, gameState):
         """
@@ -44,8 +46,10 @@ class ReflexAgent(Agent):
         # Choose one of the best actions
         scores = [self.evaluationFunction(gameState, action) for action in legalMoves]
         bestScore = max(scores)
-        bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
-        chosenIndex = random.choice(bestIndices) # Pick randomly among the best
+        bestIndices = [
+            index for index in range(len(scores)) if scores[index] == bestScore
+        ]
+        chosenIndex = random.choice(bestIndices)  # Pick randomly among the best
 
         "Add more of your code here if you want to"
 
@@ -76,8 +80,48 @@ class ReflexAgent(Agent):
         "*** CS5368 YOUR CODE HERE ***"
         "Decribe your function:"
 
-        return successorGameState.getScore()
+        '''
+        The evalucation fucntion takes into account of three factors. 
+        1) position of ghost in succesor states
+        2) no of current food items remaining
+        3) minimum food distance
 
+        At first, the function checks if the pacman is near the ghost in next state.
+        If the distance between pacman and ghost is less then 2 meaning that they are 
+        next to each other, there is possibility that they will meet in another state
+        and the pacman will die.Hence to prevent that from happening, function returns
+        negative infinity.
+
+        Second it checks if the pacman eats some food or not. It can be done by comparing
+        the number of remaining food items in the current state and successors states. It
+        is good thing that food is being eaten hence return postive infinity.
+
+        There may come situation when there is no ghost nearby and no of remaning food does
+        not decrease in next states. In such case the pacman will never make progress.
+        To prevent this, the function calculates the minimum distance to closet food and 
+        returns the reciprocal of it as hinted in the assignment pdf. 
+
+        '''
+
+        # check if succesor state has ghost nearby
+        for ghostState in newGhostStates:
+            ghostDistance = manhattanDistance(ghostState.getPosition(), newPos)
+            if ghostDistance < 2:
+                return -math.inf
+
+        # check if it can eat food or not
+        currentNoOfRemFoods = len(currentGameState.getFood().asList())
+        succesorNoOfRemFoods = len(successorGameState.getFood().asList())
+        if succesorNoOfRemFoods < currentNoOfRemFoods:
+            return math.inf
+
+        # min distance between food and pacman postion
+        minDistance = math.inf
+        for food in newFood.asList():
+            distance = manhattanDistance(food, newPos)
+            minDistance = min(minDistance, distance)
+        return 1.0 / minDistance
+        
 def scoreEvaluationFunction(currentGameState):
     """
     This default evaluation function just returns the score of the state.
@@ -87,6 +131,7 @@ def scoreEvaluationFunction(currentGameState):
     (not reflex agents).
     """
     return currentGameState.getScore()
+
 
 class MultiAgentSearchAgent(Agent):
     """
@@ -103,10 +148,11 @@ class MultiAgentSearchAgent(Agent):
     is another abstract class.
     """
 
-    def __init__(self, evalFn = 'scoreEvaluationFunction', depth = '2'):
-        self.index = 0 # Pacman is always agent index 0
+    def __init__(self, evalFn="scoreEvaluationFunction", depth="2"):
+        self.index = 0  # Pacman is always agent index 0
         self.evaluationFunction = util.lookup(evalFn, globals())
         self.depth = int(depth)
+
 
 class MinimaxAgent(MultiAgentSearchAgent):
     """
@@ -140,6 +186,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         "PS. It is okay to define your own new functions. For example, value, min_function,max_function"
         util.raiseNotDefined()
 
+
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
     Your minimax agent with alpha-beta pruning (question 3)
@@ -153,9 +200,10 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         "PS. It is okay to define your own new functions. For example, value, min_function,max_function"
         util.raiseNotDefined()
 
+
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
-      Your expectimax agent (question 4)
+    Your expectimax agent (question 4)
     """
 
     def getAction(self, gameState):
@@ -169,6 +217,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         "PS. It is okay to define your own new functions. For example, value, min_function,max_function"
         util.raiseNotDefined()
 
+
 def betterEvaluationFunction(currentGameState):
     """
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
@@ -178,6 +227,7 @@ def betterEvaluationFunction(currentGameState):
     """
     "*** CS5368 YOUR CODE HERE ***"
     util.raiseNotDefined()
+
 
 # Abbreviation
 better = betterEvaluationFunction
