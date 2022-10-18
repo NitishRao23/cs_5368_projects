@@ -12,11 +12,11 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
-from turtle import pen
 from util import manhattanDistance
-from game import Directions
+from game import Directions, Actions
 import random, util
 import math
+from mazeDistance import mazeDistance
 
 from game import Agent
 
@@ -103,19 +103,25 @@ class ReflexAgent(Agent):
 
         """
 
-        # check if succesor state has ghost nearby
+        """ 
+        check if succesor state has ghost nearby 
+        """
         for ghostState in newGhostStates:
             ghostDistance = manhattanDistance(ghostState.getPosition(), newPos)
             if ghostDistance < 2:
                 return -math.inf
 
-        # check if it can eat food or not
+        """ 
+        check if it can eat food or not
+        """
         currentNoOfRemFoods = len(currentGameState.getFood().asList())
         succesorNoOfRemFoods = len(successorGameState.getFood().asList())
         if succesorNoOfRemFoods < currentNoOfRemFoods:
             return math.inf
 
-        # min distance between food and pacman postion
+        """
+        min distance between food and pacman postion
+        """
         minDistance = math.inf
         for food in newFood.asList():
             distance = manhattanDistance(food, newPos)
@@ -192,7 +198,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         """
         agentIndex = 0
         bestScore = -math.inf
-        bestMove = Directions.STOP
+        bestAction = Directions.STOP
 
         """
         for each actions in next game state
@@ -219,9 +225,16 @@ class MinimaxAgent(MultiAgentSearchAgent):
             """
 
             if score > bestScore:
-                bestMove = action
+                bestAction = action
                 bestScore = score
-        return bestMove
+        return bestAction
+
+    """
+    function to check if terminal condition has reached or not
+    """
+
+    def checkTerminalState(self, gameState, depth):
+        return gameState.isWin() or gameState.isLose() or depth == 0
 
     """
     function for minimum value i.e in case of ghosts
@@ -238,7 +251,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         for searching is 0 return the evaluation value
         """
 
-        if gameState.isWin() or gameState.isLose() or depth == 0:
+        if self.checkTerminalState(gameState, depth):
             return self.evaluationFunction(gameState)
 
         """
@@ -293,7 +306,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         for searching is 0 return the evaluation value
         """
 
-        if gameState.isWin() or gameState.isLose() or depth == 0:
+        if self.checkTerminalState(gameState, depth):
             return self.evaluationFunction(gameState)
 
         """
@@ -337,7 +350,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
         agentIndex = 0
         bestScore = -math.inf
-        bestMove = Directions.STOP
+        bestAction = Directions.STOP
         alpha = -math.inf
         beta = math.inf
 
@@ -370,7 +383,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             """
 
             if score > bestScore:
-                bestMove = action
+                bestAction = action
                 bestScore = score
 
             """
@@ -383,7 +396,14 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
 
             alpha = max(score, alpha)
 
-        return bestMove
+        return bestAction
+
+    """
+    function to check if terminal condition has reached or not
+    """
+
+    def checkTerminalState(self, gameState, depth):
+        return gameState.isWin() or gameState.isLose() or depth == 0
 
     """
     function for minimum value i.e in case of ghosts
@@ -402,7 +422,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         for searching is 0 return the evaluation value
         """
 
-        if gameState.isWin() or gameState.isLose() or depth == 0:
+        if self.checkTerminalState(gameState, depth):
             return self.evaluationFunction(gameState)
 
         """
@@ -478,7 +498,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         for searching is 0 return the evaluation value
         """
 
-        if gameState.isWin() or gameState.isLose() or depth == 0:
+        if self.checkTerminalState(gameState, depth):
             return self.evaluationFunction(gameState)
 
         """
@@ -522,7 +542,148 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         """
         "*** CS5368 YOUR CODE HERE ***"
         "PS. It is okay to define your own new functions. For example, value, min_function,max_function"
-        util.raiseNotDefined()
+
+        """
+        initializing values:    
+            agentIndex = 0 means agent is pacman
+        """
+        agentIndex = 0
+        bestScore = -math.inf
+        bestAction = Directions.STOP
+
+        """
+        for each actions in next game state
+        """
+        for action in gameState.getLegalActions(agentIndex):
+
+            """
+            get next state detail
+            """
+            nextState = gameState.generateSuccessor(agentIndex, action)
+
+            score = self.exp_value(
+                nextState, self.depth, ((agentIndex + 1) % gameState.getNumAgents())
+            )
+
+            """
+            if it is the best score, set the varibales and return best move
+            """
+
+            if score > bestScore:
+                bestAction = action
+                bestScore = score
+        return bestAction
+
+    """
+    function to check if terminal condition has reached or not
+    """
+
+    def checkTerminalState(self, gameState, depth):
+        return gameState.isWin() or gameState.isLose() or depth == 0
+
+    """
+    function for expectimax value i.e in case of ghosts
+    we need extra parameter here agentIndex cause there could be
+    multiple number of ghost and we have to address that while 
+    selecting the next state
+    """
+
+    def exp_value(self, gameState, depth, agentIndex):
+
+        """
+        check the state of the game and depth
+        if the game is won or lost by the pacman and if the depth
+        for searching is 0 return the evaluation value
+        """
+
+        if self.checkTerminalState(gameState, depth):
+            return self.evaluationFunction(gameState)
+
+        """
+        initialize score to 0 since in this case we donot minimize the score
+        but rather aggerate value from each possibility
+        """
+        score = 0
+        actionLen = len(gameState.getLegalActions(agentIndex))
+
+        """
+        first check if the agent is the last ghost or not
+        """
+
+        if agentIndex == (gameState.getNumAgents() - 1):
+
+            """
+            if it is the last ghost, then, in next state it is turn of pacman to
+            select value i.e select maximum value
+            """
+
+            for action in gameState.getLegalActions(agentIndex):
+                nextState = gameState.generateSuccessor(agentIndex, action)
+                nextStateScore = self.max_value(nextState, depth - 1)
+
+                """
+                here, 1 / actionlen takes into consideration the probability of this
+                action happening
+                """
+                score += nextStateScore * 1 / actionLen
+
+        else:
+
+            """
+            if it is not the last ghost, then, in next state it is turn of another ghost to
+            select value i.e select minimum value within same depth for agentIndex + 1 ghost
+            """
+
+            for action in gameState.getLegalActions(agentIndex):
+                nextState = gameState.generateSuccessor(agentIndex, action)
+                nextStateScore = self.exp_value(
+                    nextState,
+                    depth,
+                    ((agentIndex + 1) % gameState.getNumAgents()),
+                )
+
+                """
+                here, 1 / actionlen takes into consideration the probability of this
+                action happening
+                """
+                score += nextStateScore * 1 / actionLen
+
+        return score
+
+    """
+    function for maximum value i.e when pacman is selecting the state
+    this will stay same for expectimax agent since pacman is always trying
+    to maximize the score
+    """
+
+    def max_value(self, gameState, depth):
+
+        """
+        check the state of the game and depth
+        if the game is won or lost by the pacman and if the depth
+        for searching is 0 return the evaluation value
+        """
+
+        if self.checkTerminalState(gameState, depth):
+            return self.evaluationFunction(gameState)
+
+        """
+        initialize score to negative infinity since we are trying to maximize value
+        """
+
+        score = -math.inf
+
+        """
+        since only pacman tries to maximize the output no need to check the type of agent
+        just return the maximum score from succesors state
+        """
+        for action in gameState.getLegalActions(0):
+            nextState = gameState.generateSuccessor(0, action)
+            score = max(
+                score, self.exp_value(nextState, depth, (1 % gameState.getNumAgents()))
+            )
+
+        return score
 
 
 def betterEvaluationFunction(currentGameState):
@@ -530,10 +691,74 @@ def betterEvaluationFunction(currentGameState):
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
     evaluation function (question 5).
 
-    DESCRIPTION: <write something here so we know what you did>
+    DESCRIPTION:
+
+    first factor we considered was ghost maze distance and if the ghost is
+    sacred or not
+
+    second factor we considred was closest food distance from the pacman
+
+    third factor we considerd was closest capsule distance
     """
     "*** CS5368 YOUR CODE HERE ***"
-    util.raiseNotDefined()
+
+    pacmanPos = currentGameState.getPacmanPosition()
+    score = currentGameState.getScore()
+    ghostStates = currentGameState.getGhostStates()
+    currentFoodList = currentGameState.getFood().asList()
+    currentCapsuleList = currentGameState.getCapsules()
+
+    '''
+    if the game is in terminal state return respective value
+    '''
+    if currentGameState.isWin():
+        return math.inf
+    if currentGameState.isLose():
+        return -math.inf
+
+    '''
+    for each ghost check for its maze distance, if distance is less than 2
+    and if ghost is scared return max value else return min value
+    '''
+    for ghost in ghostStates:
+        pos1, pos2 = ghost.getPosition()
+        d = mazeDistance(pacmanPos, (int(pos1), int(pos2)), currentGameState)
+        if d < 2:
+            if ghost.scaredTimer > 3:
+                return math.inf
+            elif ghost.scaredTimer < 2:
+                return -math.inf
+
+    '''
+    calculate maze distance of closest food
+    '''
+    foodDistances = []
+    for food in currentFoodList:
+        foodDistances.append(mazeDistance(pacmanPos, food, currentGameState))
+    foodFactor = min(foodDistances, default=math.inf)
+    if foodFactor == math.inf:
+        '''
+        game should be in terminated state
+        '''
+        foodFactor = 0
+    else:
+        '''
+        take reciprocal of the distance
+        '''
+        foodFactor = 1 / foodFactor
+
+    '''
+    calculate closest capsule distance
+    '''
+    capsuleDistance = []
+    for capsule in currentCapsuleList:
+        capsuleDistance.append(mazeDistance(pacmanPos, capsule, currentGameState))
+    capsuleFactor = min(capsuleDistance, default=0)
+
+    '''
+    tried using different varibale for each factor, didmot make much different
+    '''
+    return 5.0 * score + 10.0 * foodFactor + 0.01 * capsuleFactor
 
 
 # Abbreviation
