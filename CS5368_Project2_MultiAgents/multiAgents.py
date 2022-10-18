@@ -358,8 +358,12 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             """
 
             score = self.min_value(
-                nextState, self.depth, ((agentIndex + 1) % gameState.getNumAgents())
-         , alpha, beta  )
+                nextState,
+                self.depth,
+                ((agentIndex + 1) % gameState.getNumAgents()),
+                alpha,
+                beta,
+            )
 
             """
             if it is the best score, set the varibales and return best move
