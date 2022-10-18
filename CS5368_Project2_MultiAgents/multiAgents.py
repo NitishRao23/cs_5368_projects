@@ -80,7 +80,7 @@ class ReflexAgent(Agent):
         "*** CS5368 YOUR CODE HERE ***"
         "Decribe your function:"
 
-        '''
+        """
         The evalucation fucntion takes into account of three factors. 
         1) position of ghost in succesor states
         2) no of current food items remaining
@@ -101,7 +101,7 @@ class ReflexAgent(Agent):
         To prevent this, the function calculates the minimum distance to closet food and 
         returns the reciprocal of it as hinted in the assignment pdf. 
 
-        '''
+        """
 
         # check if succesor state has ghost nearby
         for ghostState in newGhostStates:
@@ -121,7 +121,8 @@ class ReflexAgent(Agent):
             distance = manhattanDistance(food, newPos)
             minDistance = min(minDistance, distance)
         return 1.0 / minDistance
-        
+
+
 def scoreEvaluationFunction(currentGameState):
     """
     This default evaluation function just returns the score of the state.
@@ -184,7 +185,132 @@ class MinimaxAgent(MultiAgentSearchAgent):
         """
         "*** CS5368 YOUR CODE HERE ***"
         "PS. It is okay to define your own new functions. For example, value, min_function,max_function"
-        util.raiseNotDefined()
+
+        """
+        initializing values:    
+            agentIndex = 0 means agent is pacman
+        """
+        agentIndex = 0
+        bestScore = -math.inf
+        bestMove = Directions.STOP
+
+        """
+        for each actions in next game state
+        """
+        for action in gameState.getLegalActions(agentIndex):
+
+            """
+            get next state detail
+            """
+            nextState = gameState.generateSuccessor(agentIndex, action)
+
+            """
+            get minimum evaluation score since currently it's pacman turn to chose and in 
+            next state it is turn of ghost which minimizes the value. here the modulus of 
+            agent index is taken to reset the index of agent (ghost in this case)
+            """
+
+            score = self.min_value(
+                nextState, self.depth, ((agentIndex + 1) % gameState.getNumAgents())
+            )
+
+            """
+            if it is the best score, set the varibales and return best move
+            """
+
+            if score > bestScore:
+                bestMove = action
+                bestScore = score
+        return bestMove
+
+    """
+    function for minimum value i.e in case of ghosts
+    we need extra parameter here agentIndex cause there could be
+    multiple number of ghost and we have to address that while 
+    selecting the next state
+    """
+
+    def min_value(self, gameState, depth, agentIndex):
+
+        """
+        check the state of the game and depth
+        if the game is won or lost by the pacman and if the depth
+        for searching is 0 return the evaluation value
+        """
+
+        if gameState.isWin() or gameState.isLose() or depth == 0:
+            return self.evaluationFunction(gameState)
+
+        """
+        initialize score to infinity
+        """
+        score = math.inf
+
+        """
+        first check if the agent is the last ghost or not
+        """
+
+        if agentIndex == (gameState.getNumAgents() - 1):
+
+            """
+            if it is the last ghost, then, in next state it is turn of pacman to
+            select value i.e select maximum value
+            """
+
+            for action in gameState.getLegalActions(agentIndex):
+                nextState = gameState.generateSuccessor(agentIndex, action)
+                score = min(score, self.max_value(nextState, depth - 1))
+
+        else:
+
+            """
+            if it is not the last ghost, then, in next state it is turn of another ghost to
+            select value i.e select minimum value within same depth for agentIndex + 1 ghost
+            """
+
+            for action in gameState.getLegalActions(agentIndex):
+                nextState = gameState.generateSuccessor(agentIndex, action)
+                score = min(
+                    score,
+                    self.min_value(
+                        nextState,
+                        depth,
+                        ((agentIndex + 1) % gameState.getNumAgents()),
+                    ),
+                )
+
+        return score
+
+    """
+    function for maximum value i.e when pacman is selecting the state
+    """
+
+    def max_value(self, gameState, depth):
+
+        """
+        check the state of the game and depth
+        if the game is won or lost by the pacman and if the depth
+        for searching is 0 return the evaluation value
+        """
+
+        if gameState.isWin() or gameState.isLose() or depth == 0:
+            return self.evaluationFunction(gameState)
+
+        """
+        initialize score to negative infinity since we are trying to maximize value
+        """
+
+        score = -math.inf
+
+        """
+        since only pacman tries to maximize the output no need to check the type of agent
+        just return the maximum score from succesors state
+        """
+        for action in gameState.getLegalActions(0):
+            nextState = gameState.generateSuccessor(0, action)
+            score = max(score, self.min_value(nextState, depth, 1))
+
+        return score
 
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
@@ -198,7 +324,184 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
         "*** CS5368 YOUR CODE HERE ***"
         "PS. It is okay to define your own new functions. For example, value, min_function,max_function"
-        util.raiseNotDefined()
+
+        """
+        Alphabeta agent will be similar to minmax agent witha dditional feature of alpha and beta and purning
+        """
+
+        """
+        initializing values:    
+            agentIndex = 0 means agent is pacman
+
+            alpha and beta are also initialized here
+        """
+        agentIndex = 0
+        bestScore = -math.inf
+        bestMove = Directions.STOP
+        alpha = -math.inf
+        beta = math.inf
+
+        """
+        for each actions in next game state
+        """
+        for action in gameState.getLegalActions(agentIndex):
+
+            """
+            get next state detail
+            """
+            nextState = gameState.generateSuccessor(agentIndex, action)
+
+            """
+            get minimum evaluation score since currently it's pacman turn to chose and in 
+            next state it is turn of ghost which minimizes the value. here the modulus of 
+            agent index is taken to reset the index of agent (ghost in this case)
+            """
+
+            score = self.min_value(
+                nextState, self.depth, ((agentIndex + 1) % gameState.getNumAgents())
+         , alpha, beta  )
+
+            """
+            if it is the best score, set the varibales and return best move
+            """
+
+            if score > bestScore:
+                bestMove = action
+                bestScore = score
+
+            """
+            check for alpha and beta variables here
+            since it is maximizing node, set alpha value
+            """
+
+            if score > beta:
+                return score
+
+            alpha = max(score, alpha)
+
+        return bestMove
+
+    """
+    function for minimum value i.e in case of ghosts
+    we need extra parameter here agentIndex cause there could be
+    multiple number of ghost and we have to address that while 
+    selecting the next state
+
+    extra parameters aplha and beta are added
+    """
+
+    def min_value(self, gameState, depth, agentIndex, alpha, beta):
+
+        """
+        check the state of the game and depth
+        if the game is won or lost by the pacman and if the depth
+        for searching is 0 return the evaluation value
+        """
+
+        if gameState.isWin() or gameState.isLose() or depth == 0:
+            return self.evaluationFunction(gameState)
+
+        """
+        initialize score to infinity
+        """
+        score = math.inf
+
+        """
+        first check if the agent is the last ghost or not
+        """
+
+        if agentIndex == (gameState.getNumAgents() - 1):
+
+            """
+            if it is the last ghost, then, in next state it is turn of pacman to
+            select value i.e select maximum value
+            """
+
+            for action in gameState.getLegalActions(agentIndex):
+                nextState = gameState.generateSuccessor(agentIndex, action)
+                score = min(score, self.max_value(nextState, depth - 1, alpha, beta))
+
+                """
+                check for alpha and beta variables here
+                """
+
+                if alpha > score:
+                    return score
+
+                beta = min(score, beta)
+
+        else:
+
+            """
+            if it is not the last ghost, then, in next state it is turn of another ghost to
+            select value i.e select minimum value within same depth for agentIndex + 1 ghost
+            """
+
+            for action in gameState.getLegalActions(agentIndex):
+                nextState = gameState.generateSuccessor(agentIndex, action)
+                score = min(
+                    score,
+                    self.min_value(
+                        nextState,
+                        depth,
+                        ((agentIndex + 1) % gameState.getNumAgents()),
+                        alpha,
+                        beta,
+                    ),
+                )
+
+                """
+                check for alpha and beta variables here
+                since it is minimizing node, set beta value
+                """
+
+                if alpha > score:
+                    return score
+
+                beta = min(score, beta)
+
+        return score
+
+    """
+    function for maximum value i.e when pacman is selecting the state
+    """
+
+    def max_value(self, gameState, depth, alpha, beta):
+
+        """
+        check the state of the game and depth
+        if the game is won or lost by the pacman and if the depth
+        for searching is 0 return the evaluation value
+        """
+
+        if gameState.isWin() or gameState.isLose() or depth == 0:
+            return self.evaluationFunction(gameState)
+
+        """
+        initialize score to negative infinity since we are trying to maximize value
+        """
+
+        score = -math.inf
+
+        """
+        since only pacman tries to maximize the output no need to check the type of agent
+        just return the maximum score from succesors state
+        """
+        for action in gameState.getLegalActions(0):
+            nextState = gameState.generateSuccessor(0, action)
+            score = max(score, self.min_value(nextState, depth, 1, alpha, beta))
+
+            """
+            check for alpha and beta variables here
+            since it is maximizing node, set alpha value
+            """
+
+            if beta < score:
+                return score
+
+            alpha = max(score, alpha)
+
+        return score
 
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
